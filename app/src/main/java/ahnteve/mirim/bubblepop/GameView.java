@@ -106,6 +106,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         ArrayList<SmallBubble> sBubble=new ArrayList<SmallBubble>(); // 작은 방울
         ArrayList<WaterBubble> wBubble=new ArrayList<WaterBubble>(); // 총알
         ArrayList<Score> mScore=new ArrayList<Score>(); // 점수
+        Score totScore;
 
         boolean canRun=true;    // 스레드 제어용
         boolean isWait=false;
@@ -132,9 +133,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             mx=width/2;
             my=height/6*5;
 
-            paint.setTextSize(40);
-            paint.setColor(Color.WHITE);
-            paint.setAntiAlias(true);
+            totScore=new Score(mContext, 0, 0, 0);
         }
 
         // 큰 방울 만들기
@@ -142,7 +141,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             Random rnd=new Random();
             if(mBubble.size()>9 || rnd.nextInt(40) < 38) return;
             int x=rnd.nextInt(width);
-            int y=rnd.nextInt(height-(height-my));
+            int y=rnd.nextInt(my-ch);
             mBubble.add(new Bubble(mContext, x, y, width, height));
         }
 
@@ -204,6 +203,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // 충돌 판정
         public void CheckCollision(){
             int x1, y1, x2, y2;
+            int score=new Random().nextInt(101)+100;
 
             // 총알과 비눗방울의 충돌
             for(WaterBubble water : wBubble){
@@ -214,10 +214,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     y2=tmp.y;
                     if(Math.abs(x1-x2)<tmp.rad && Math.abs(y1-y2)<tmp.rad){
                         MakeSmallBubble(tmp.x, tmp.y);
-//                        mScore.add(new Score(tmp.x, tmp.y));
+                        mScore.add(new Score(mContext, tmp.x, tmp.y, score));
                         tmp.dead=true;
                         water.dead=true;
-                        Tot+=100;
+                        Tot+=score;
                         break;
                     }
                 } // for
@@ -239,8 +239,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 canvas.drawBitmap(tmp.imgBubble, tmp.x-tmp.rad, tmp.y-tmp.rad, null);
 
             for(Score tmp : mScore)
-                canvas.drawText("+100", tmp.x-20, tmp.y-10, tmp.paint);
-            canvas.drawText("총점 : "+Tot, 10, 30, paint);
+                canvas.drawBitmap(tmp.imgScore, tmp.x-tmp.sw, tmp.y-tmp.sh, null);
+            totScore.MakeScore(Tot);
+            canvas.drawBitmap(totScore.imgScore, 10, 10, null);
 
             canvas.drawBitmap(car, mx-cw, my-ch, null);
         }
