@@ -49,23 +49,19 @@ public class Bubble {
         loop++;
         if(loop%3==0) {
             imgNum++;
-            if(imgNum>5) imgNum=0;
-            imgBubble=Bubbles[imgNum];
+            if (imgNum > 5) imgNum = 0;
+            imgBubble = Bubbles[imgNum];
 
-            rad=_rad+(imgNum<=3?imgNum:6-imgNum)*2;
-
-            x+=sx;
+            rad = _rad + (imgNum <= 3 ? imgNum : 6 - imgNum) * 2;
+        }
+        x+=sx;
+        y+=sy;
+        if(x>=width+rad) {
+            x=-rad;
+        }
+        if(y<=rad||y>=height-rad){
+            sy=-sy;
             y+=sy;
-            if(x<=rad||x>=width-rad) {
-                sx=-sx;
-                x+=sx;
-            }
-            if(y<=rad||y>=height-rad){
-                sy=-sy;
-                y+=sy;
-            }
-            if(counter>=3) dead=true;
-
         }
     }
 }

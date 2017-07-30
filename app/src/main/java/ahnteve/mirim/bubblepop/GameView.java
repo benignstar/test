@@ -19,86 +19,99 @@ import android.view.WindowManager;
 import java.util.ArrayList;
 import java.util.Random;
 
-/**
- * Created by 안성현 on 2017-07-30.
- */
-
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     GameThread mThread;
     SurfaceHolder mHolder;
     Context mContext;
-    final int LEFT=1;
-    final int RIGHT=2;
+
+    final int LEFT = 1;       // 차 이동 방향
+    final int RIGHT = 2;
 
     public GameView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        SurfaceHolder holder=getHolder();
+        SurfaceHolder holder = getHolder();
         holder.addCallback(this);
         mHolder=holder;
+        mContext=context;       // holder와 Context 보존
         mThread=new GameThread(holder, context);
-        mContext=context;
+
         setFocusable(true);
     }
 
+    // Surface가 생성될 때 실행되는 부분
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         mThread.start();
     }
 
+    // Surface가 바뀔 때 실행되는 부분
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
-    }
-
+    // SurfaceView가 해제될 때 실행되는 부분
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        StopGame();
+        boolean done = true;
+        while (done) {
+            try {
+                mThread.join();        // 스레드가 현재 step을 끝낼 때까지 대기
+                done = false;
+            } catch (InterruptedException e) {}
+        }
     }
 
+    // 스레드 완전 정지
     public void StopGame(){
         mThread.StopThread();
     }
 
+    // 스레드 일시 정지
     public void PauseGame(){
         mThread.PauseResume(true);
     }
 
+    // 스레드 재기동
     public void ResumeGame(){
         mThread.PauseResume(false);
     }
 
+    // 게임 초기화
     public void RestartGame(){
-        mThread.StopThread();
+        mThread.StopThread(); // 스레드 중지
 
+        // 현재의 스레드를 비우고 다시 생성
         mThread=null;
         mThread=new GameThread(mHolder, mContext);
         mThread.start();
     }
 
 
+
+    // --- GameThread Class
+
     class GameThread extends Thread{
         SurfaceHolder mHolder;
         Context mContext;
 
         int width, height;
-        Bitmap background;
-        Bitmap car;
-        int cw, ch;
-        int mx, my;
-        long lastTime;
+        Bitmap background;  // 배경
+        Bitmap car;         // 차
+        int cw, ch;         // 차의 크기
+        int mx, my;         // 차의 좌표
+        long lastTime;      // 시간 계산용 변수
+        int Tot=0;          // 득점 합계
+        Paint paint=new Paint(); // 점수 표시용
 
-        int Tot=0;
-        Paint paint=new Paint();
-        ArrayList<Bubble> mBubble=new ArrayList<>();
-        ArrayList<SmallBubble> sBubble=new ArrayList<>();
-        ArrayList<WaterBubble> wBubble=new ArrayList<>();
-        ArrayList<Score> mScore=new ArrayList<>();
+        ArrayList<Bubble> mBubble=new ArrayList<Bubble>(); // 큰 방울
+        ArrayList<SmallBubble> sBubble=new ArrayList<SmallBubble>(); // 작은 방울
+        ArrayList<WaterBubble> wBubble=new ArrayList<WaterBubble>(); // 총알
+        ArrayList<Score> mScore=new ArrayList<Score>(); // 점수
 
-        boolean canRun=true;
+        boolean canRun=true;    // 스레드 제어용
         boolean isWait=false;
 
         public GameThread(SurfaceHolder holder, Context context){
-            mHolder=holder;
+            mHolder=holder; // SurfaceHolder 보존
             mContext=context;
 
             Display display=((WindowManager)context.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
@@ -124,23 +137,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             paint.setAntiAlias(true);
         }
 
-        public void StopThread(){
-            canRun=false;
-            synchronized (this){
-                this.notify();
-            }
-        }
-
-
-        private void MakeSmallBubble(int x, int y){
-            Random rnd=new Random();
-            int count=rnd.nextInt(9)+7;
-            for(int i=1; i<=count; i++){
-                int ang=rnd.nextInt(360);
-                sBubble.add(new SmallBubble(mContext, x, y, ang, width, height));
-            }
-        }
-
+        // 큰 방울 만들기
         public void MakeBubble(){
             Random rnd=new Random();
             if(mBubble.size()>9 || rnd.nextInt(40) < 38) return;
@@ -149,17 +146,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             mBubble.add(new Bubble(mContext, x, y, width, height));
         }
 
+
+        // 작은 방울 만들기
+        private void MakeSmallBubble(int x, int y){
+            Random rnd=new Random();
+            int count=rnd.nextInt(9)+7; // 7~15개
+            for(int i=1; i<=count; i++){
+                int ang=rnd.nextInt(360);
+                sBubble.add(new SmallBubble(mContext, x, y, ang, width, height));
+            }
+        }
+
+        // 모든 캐릭터 이동
         public void MoveCharacters(){
 
             for(int i=mBubble.size()-1 ; i>=0; i--){
                 mBubble.get(i).MoveBubble();
-                if(mBubble.get(i).dead) {
-                    //MakeSmallBubble(mBubble.get(i).x, mBubble.get(i).y);
-                    mBubble.remove(i);
-                }
+                if(mBubble.get(i).dead) mBubble.remove(i);
             }
 
-            for(int i=sBubble.size()-1; i>=0; i++) {
+            for(int i=sBubble.size()-1; i>=0; i--) {
                 sBubble.get(i).MoveBubble();
                 if(sBubble.get(i).dead)
                     sBubble.remove(i);
@@ -177,24 +183,29 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         }
 
+        // 캐릭터 이동
         private void MoveCar(int n){
-            int sx=4;
-            if(n==LEFT) sx=-4;
+            int sx=10;
+            if(n==LEFT) sx=-10;
             mx+=sx;
             if(mx<cw) mx=cw;
             if(mx>width-cw) mx=width-cw;
         }
 
+        // 총알 발사
         private void MakeWaterBubble(){
             long thisTime=System.currentTimeMillis();
-            if(thisTime-lastTime>=300)
+            if(thisTime-lastTime>=300)  // 1/3초에 1개씩 발사
                 wBubble.add(new WaterBubble(mContext, mx, my-20, width, height));
             lastTime=thisTime;
         }
 
+
+        // 충돌 판정
         public void CheckCollision(){
             int x1, y1, x2, y2;
 
+            // 총알과 비눗방울의 충돌
             for(WaterBubble water : wBubble){
                 x1=water.x;
                 y1=water.y;
@@ -202,19 +213,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     x2=tmp.x;
                     y2=tmp.y;
                     if(Math.abs(x1-x2)<tmp.rad && Math.abs(y1-y2)<tmp.rad){
-                   //     MakeSmallBubble(tmp.x, tmp.y);
-                        mScore.add(new Score(tmp.x, tmp.y));
+                        MakeSmallBubble(tmp.x, tmp.y);
+//                        mScore.add(new Score(tmp.x, tmp.y));
                         tmp.dead=true;
                         water.dead=true;
                         Tot+=100;
                         break;
                     }
-                }
-            }
+                } // for
+            } // for
         }
 
+        // Canvas에 그리기
         public void DrawCharacters(Canvas canvas){
-            canvas.drawBitmap(background, 0, 0, null);
+            canvas.drawBitmap(background, 0, 0, null); // 배경
+
 
             for(Bubble tmp : mBubble)
                 canvas.drawBitmap(tmp.imgBubble, tmp.x-tmp.rad, tmp.y-tmp.rad, null);
@@ -225,18 +238,23 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             for(WaterBubble tmp : wBubble)
                 canvas.drawBitmap(tmp.imgBubble, tmp.x-tmp.rad, tmp.y-tmp.rad, null);
 
-            for(Score tmp : mScore){
+            for(Score tmp : mScore)
                 canvas.drawText("+100", tmp.x-20, tmp.y-10, tmp.paint);
-                canvas.drawText("총점 : "+Tot, 10, 30, paint);
-            }
+            canvas.drawText("총점 : "+Tot, 10, 30, paint);
+
             canvas.drawBitmap(car, mx-cw, my-ch, null);
         }
 
+        public void StopThread(){
+            canRun=false;
+            synchronized (this){
+                this.notify();
+            }
+        }
 
 
         public void run(){
             Canvas canvas=null;
-
             while(canRun){
                 canvas=mHolder.lockCanvas();
                 try {
@@ -250,13 +268,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     if(canvas!=null)
                         mHolder.unlockCanvasAndPost(canvas);
                 }
+
                 synchronized (this) {
-                    if (isWait) {
+                    if (isWait)
                         try {
                             wait();
-                        } catch (Exception e) {
-                        }
-                    }
+                        } catch (Exception e) { }
                 }
             }
         }
@@ -299,7 +316,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                         break;
                 }
             }
+            return super.onKeyDown(keyCode, event);
         }
-        return super.onKeyDown(keyCode, event);
     }
 }
