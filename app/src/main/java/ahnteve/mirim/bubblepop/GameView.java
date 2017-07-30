@@ -100,11 +100,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int mx, my;         // 차의 좌표
         long lastTime;      // 시간 계산용 변수
         int Tot=0;          // 득점 합계
+        int CarCnt;
         Paint paint=new Paint(); // 점수 표시용
 
         ArrayList<Bubble> mBubble=new ArrayList<Bubble>(); // 큰 방울
         ArrayList<SmallBubble> sBubble=new ArrayList<SmallBubble>(); // 작은 방울
         ArrayList<WaterBubble> wBubble=new ArrayList<WaterBubble>(); // 총알
+        ArrayList<Car> mCar=new ArrayList<Car>();
         ArrayList<Score> mScore=new ArrayList<Score>(); // 점수
         Score totScore;
 
@@ -126,14 +128,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             background=Bitmap.createScaledBitmap(background, width, height, false);
 
             car=BitmapFactory.decodeResource(getResources(), R.drawable.red_car);
-            car=Bitmap.createScaledBitmap(car, width/6, width/3, false);
-            cw=car.getWidth()/2;
-            ch=car.getHeight()/2;
+            car=Bitmap.createScaledBitmap(car, width/10, width/5, false);
 
             mx=width/2;
             my=height/6*5;
 
             totScore=new Score(mContext, 0, 0, 0);
+
+            InitGame();
+        }
+
+        public void InitGame() {
+            CarCnt=3;
+            for(int i=0; i<=CarCnt; i++){
+                mCar.add(new Car(mContext, width/2, height/6*5, width));
+            }
+            Tot=0;
         }
 
         // 큰 방울 만들기
@@ -180,22 +190,23 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 if(mScore.get(i).Move() == false)
                     mScore.remove(i);
 
+            mCar.get(CarCnt).UndeadMode();
+
         }
 
         // 캐릭터 이동
         private void MoveCar(int n){
-            int sx=10;
-            if(n==LEFT) sx=-10;
-            mx+=sx;
-            if(mx<cw) mx=cw;
-            if(mx>width-cw) mx=width-cw;
+            if(n==LEFT) mCar.get(CarCnt).MoveLeft();
+            if(n==RIGHT) mCar.get(CarCnt).MoveRight();
         }
 
         // 총알 발사
         private void MakeWaterBubble(){
             long thisTime=System.currentTimeMillis();
-            if(thisTime-lastTime>=300)  // 1/3초에 1개씩 발사
-                wBubble.add(new WaterBubble(mContext, mx, my-20, width, height));
+            if(thisTime-lastTime>=300) { // 1/3초에 1개씩 발사
+                Car tmp=mCar.get(CarCnt);
+                wBubble.add(new WaterBubble(mContext, tmp.x, tmp.y, width, height));
+            }
             lastTime=thisTime;
         }
 
@@ -204,7 +215,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         public void CheckCollision(){
             int x1, y1, x2, y2;
             int score=new Random().nextInt(101)+100;
-
+            // 방울과 거미의 충돌
+            Car c=mCar.get(CarCnt);
+            for(Bubble tmp : mBubble){
+                x1=Math.abs(c.x-tmp.x);
+                y1=Math.abs(c.y-tmp.y);
+                if(x1<c.cw+tmp.rad && y1<c.ch+tmp.rad){
+                    MakeSmallBubble(tmp.x, tmp.y);
+                    tmp.dead=true;
+                    if(c.undead==false){
+                        mCar.remove(CarCnt);
+                        CarCnt--;
+                        if(CarCnt<0) GameOver();
+                    }
+                }
+            }
             // 총알과 비눗방울의 충돌
             for(WaterBubble water : wBubble){
                 x1=water.x;
@@ -224,10 +249,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             } // for
         }
 
+        private void GameOver() {
+            InitGame();
+        }
+
         // Canvas에 그리기
         public void DrawCharacters(Canvas canvas){
             canvas.drawBitmap(background, 0, 0, null); // 배경
 
+            for(int i=0; i<=CarCnt; i++)
+                canvas.drawBitmap(car, width/12*i+20, height-400, null);
 
             for(Bubble tmp : mBubble)
                 canvas.drawBitmap(tmp.imgBubble, tmp.x-tmp.rad, tmp.y-tmp.rad, null);
@@ -243,7 +274,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             totScore.MakeScore(Tot);
             canvas.drawBitmap(totScore.imgScore, 10, 10, null);
 
-            canvas.drawBitmap(car, mx-cw, my-ch, null);
+            Car tmp=mCar.get(CarCnt);
+            canvas.drawBitmap(tmp.imgCar, tmp.x - tmp.cw, tmp.y-tmp.ch, null);
         }
 
         public void StopThread(){
@@ -289,17 +321,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
     }
-    /*@Override
+    @Override
     public boolean onTouchEvent(MotionEvent event){
         if(event.getAction()==MotionEvent.ACTION_DOWN){
             synchronized (mHolder){
-                int x=(int)event.getX();
-                int y=(int)event.getY();
-                mThread.MakeBubble(x,y);
+
+                mThread.MakeWaterBubble();
             }
         }
         return true;
-    }*/
+    }
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {

@@ -40,14 +40,14 @@ public class Bubble {
         Bubbles[5]=Bubbles[1];
         imgBubble=Bubbles[0];
 
-        sx=2;
-        sy=rnd.nextInt(2) == 0 ? -2 : 2;
+        sx=1;
+        sy=rnd.nextInt(2) == 0 ? -1 : 1;
         MoveBubble();
     }
 
     public void MoveBubble() {
         loop++;
-        if(loop%3==0) {
+        if(loop%10==0) {
             imgNum++;
             if (imgNum > 5) imgNum = 0;
             imgBubble = Bubbles[imgNum];
