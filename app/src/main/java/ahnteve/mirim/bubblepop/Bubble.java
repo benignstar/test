@@ -40,8 +40,8 @@ public class Bubble {
         Bubbles[5]=Bubbles[1];
         imgBubble=Bubbles[0];
 
-        sx=1;
-        sy=rnd.nextInt(2) == 0 ? -1 : 1;
+        sx=rnd.nextInt(2) == 0 ? -1 : 1;
+        sy=10;
         MoveBubble();
     }
 
@@ -59,9 +59,6 @@ public class Bubble {
         if(x>=width+rad) {
             x=-rad;
         }
-        if(y<=rad||y>=height-rad){
-            sy=-sy;
-            y+=sy;
-        }
+
     }
 }
