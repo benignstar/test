@@ -40,7 +40,7 @@ public class Bubble {
         Bubbles[5]=Bubbles[1];
         imgBubble=Bubbles[0];
 
-        sx=rnd.nextInt(2) == 0 ? -1 : 1;
+        sx=0;
         sy=10;
         MoveBubble();
     }

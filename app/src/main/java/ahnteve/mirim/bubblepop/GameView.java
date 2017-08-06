@@ -23,14 +23,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     GameThread mThread;
     SurfaceHolder mHolder;
     Context mContext;
-
-    final int LEFT = 1;       // 차 이동 방향
-    final int RIGHT = 8;
-
     private Rect[] ArrowRect = new Rect[2];
     private Integer ArrowX[] = new Integer[2];
-    private int counter=0;
-    private int x1, y1;
+
 
     public GameView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -114,8 +109,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         Context mContext;
 
 
+        private int counter=0;
+        private int x1, y1, x2, y2;
+
+
         int width, height;
-        Bitmap background;  // 배경
+        Bitmap background, cloud;  // 배경
         Bitmap car;         // 차
         int cw, ch;         // 차의 크기
         int mx, my;         // 차의 좌표
@@ -133,7 +132,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         boolean canRun = true;    // 스레드 제어용
         boolean isWait = false;
-        private int sx1, sy1;
+        private int sx1, sy1, sx2, sy2;
         private int cx, cy;
 
         public GameThread(SurfaceHolder holder, Context context) {
@@ -150,13 +149,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             background = BitmapFactory.decodeResource(getResources(), R.drawable.road);
             background = Bitmap.createScaledBitmap(background, width, height, false);
 
+            cloud = BitmapFactory.decodeResource(getResources(), R.drawable.cloud);
+            cloud = Bitmap.createScaledBitmap(cloud, width, height, false);
+
+
+
             cx=width/2;
             cy=height/2;
 
-            x1=0;          // Viewport의 시작 위치는 이미지의 한가운데
+            x1=0;
             y1=cy;
+            x2=0;
+            y2=cy;
             sx1=0;         // Viewport를 1회에 이동시킬 거리
             sy1=-1;
+            sx2=0;
+            sy2=-3;
 
             car = BitmapFactory.decodeResource(getResources(), R.drawable.red_car);
             car = Bitmap.createScaledBitmap(car, width / 10, width / 5, false);
@@ -280,10 +288,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             Rect src=new Rect(); // Viewport의 좌표
             Rect dst=new Rect(); // View(화면)의 좌표
             dst.set(0, 0, width, height); // View는 화면 전체 크기
+            Rect src1=new Rect();
 
             ScrollImage();
             src.set(x1, y1, width, y1+cy);
+            src1.set(x2, y2, width, y2+cy);
             canvas.drawBitmap(background, src, dst, null);
+            canvas.drawBitmap(cloud, src1, dst, null);
 
             for (int i = 0; i <= CarCnt; i++)
                 canvas.drawBitmap(car, width / 12 * i + 20, height - 400, null);
@@ -347,6 +358,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         private void ScrollImage() {
 
             counter++;
+
+            x2+=sx2;
+            y2+=sy2;
+            if(x2<0) x2=cx;
+            if(y2<0) y2=cy;
+
             if(counter%2==0){
                 x1+=sx1;
                 y1+=sy1;
